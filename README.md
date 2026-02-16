@@ -6,7 +6,7 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <title>Aquatic Fire Obby - Prototype</title>
 
@@ -14,7 +14,7 @@
 
     <style>
 
-        body { margin: 0; overflow: hidden; background-color: #001133; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #001133; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
 
         #ui-layer {
 
@@ -29,6 +29,8 @@
             pointer-events: none;
 
             text-shadow: 2px 2px 4px #000000;
+
+            z-index: 10;
 
         }
 
@@ -88,6 +90,120 @@
 
             pointer-events: none;
 
+            z-index: 20;
+
+        }
+
+
+        /* --- Touch Controls --- */
+
+        #joystick-zone {
+
+            position: absolute;
+
+            bottom: 40px;
+
+            left: 40px;
+
+            width: 120px;
+
+            height: 120px;
+
+            background: rgba(255, 255, 255, 0.1);
+
+            border: 2px solid rgba(255, 255, 255, 0.2);
+
+            border-radius: 50%;
+
+            touch-action: none;
+
+            display: none; /* Hidden on desktop by default */
+
+            z-index: 15;
+
+        }
+
+        #joystick-knob {
+
+            position: absolute;
+
+            top: 50%;
+
+            left: 50%;
+
+            width: 50px;
+
+            height: 50px;
+
+            background: rgba(0, 238, 255, 0.6);
+
+            border-radius: 50%;
+
+            transform: translate(-50%, -50%);
+
+            pointer-events: none;
+
+            box-shadow: 0 0 10px rgba(0, 238, 255, 0.5);
+
+        }
+
+        #jump-button {
+
+            position: absolute;
+
+            bottom: 50px;
+
+            right: 50px;
+
+            width: 90px;
+
+            height: 90px;
+
+            background: rgba(255, 68, 68, 0.5);
+
+            border: 2px solid rgba(255, 255, 255, 0.2);
+
+            border-radius: 50%;
+
+            color: white;
+
+            display: none; /* Hidden on desktop by default */
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-weight: bold;
+
+            font-size: 18px;
+
+            user-select: none;
+
+            touch-action: none;
+
+            z-index: 15;
+
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+
+        }
+
+        #jump-button:active {
+
+            background: rgba(255, 68, 68, 0.8);
+
+            transform: scale(0.95);
+
+        }
+
+
+        /* Show controls on touch devices */
+
+        @media (pointer: coarse) {
+
+            #joystick-zone, #jump-button { display: flex; }
+
+            #controls-hint { display: none; }
+
         }
 
     </style>
@@ -117,17 +233,28 @@
     <div id="death-screen">OUCH!</div>
 
 
+    <!-- Touch Controls -->
+
+    <div id="joystick-zone">
+
+        <div id="joystick-knob"></div>
+
+    </div>
+
+    <div id="jump-button">JUMP</div>
+
+
     <script>
 
         // --- Game Constants & State ---
 
         const GRAVITY = 25.0;
 
-        const JUMP_FORCE = 15.0; // Increased jump height
+        const JUMP_FORCE = 15.0;
 
-        const MOVE_SPEED = 18.0; // Increased movement speed
+        const MOVE_SPEED = 18.0;
 
-        const FRICTION = 4.0; // Reduced friction for better air momentum
+        const FRICTION = 4.0;
 
        
 
@@ -143,7 +270,7 @@
 
             time: 0,
 
-            currentPlatform: null // Track which platform we are on
+            currentPlatform: null
 
         };
 
@@ -201,54 +328,31 @@
         scene.add(playerLight);
 
 
-        // --- Player Setup (Jellyfish Avatar) ---
+        // --- Player Setup ---
 
         const player = new THREE.Group();
 
 
-        // 1. The Bell (Head)
+        // Bell
 
         const bellGeo = new THREE.SphereGeometry(0.6, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
 
         const bellMat = new THREE.MeshStandardMaterial({
 
-            color: 0xff66cc,
-
-            roughness: 0.1,
-
-            metalness: 0.1,
-
-            transparent: true,
-
-            opacity: 0.7,
-
-            emissive: 0x440044,
-
-            emissiveIntensity: 0.2
+            color: 0xff66cc, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.7, emissive: 0x440044, emissiveIntensity: 0.2
 
         });
 
         const bell = new THREE.Mesh(bellGeo, bellMat);
 
-        bell.position.y = 0.0;
-
         player.add(bell);
 
 
-        // 2. Tentacles
+        // Tentacles
 
         const tentacleGeo = new THREE.CylinderGeometry(0.04, 0.02, 0.8, 8);
 
-        const tentacleMat = new THREE.MeshStandardMaterial({
-
-            color: 0xffccff,
-
-            transparent: true,
-
-            opacity: 0.8
-
-        });
-
+        const tentacleMat = new THREE.MeshStandardMaterial({ color: 0xffccff, transparent: true, opacity: 0.8 });
 
         for(let i = 0; i < 5; i++) {
 
@@ -263,7 +367,7 @@
         }
 
 
-        // 3. Eyes
+        // Eyes
 
         const eyeGeo = new THREE.SphereGeometry(0.12, 16, 16);
 
@@ -271,25 +375,13 @@
 
         const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat); leftEye.position.set(0.2, 0.2, 0.45);
 
-        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05), pupilMat); leftPupil.position.set(0.22, 0.2, 0.54);
 
-        leftEye.position.set(0.2, 0.2, 0.45);
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat); rightEye.position.set(-0.2, 0.2, 0.45);
 
-        const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05), pupilMat);
-
-        leftPupil.position.set(0.22, 0.2, 0.54);
-
-       
-
-        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-
-        rightEye.position.set(-0.2, 0.2, 0.45);
-
-        const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05), pupilMat);
-
-        rightPupil.position.set(-0.22, 0.2, 0.54);
-
+        const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.05), pupilMat); rightPupil.position.set(-0.22, 0.2, 0.54);
 
         player.add(leftEye, rightEye, leftPupil, rightPupil);
 
@@ -299,7 +391,7 @@
         scene.add(player);
 
 
-        // Physics State
+        // --- Input State ---
 
         const playerVelocity = new THREE.Vector3(0, 0, 0);
 
@@ -309,9 +401,9 @@
 
        
 
-        // --- Input Handling ---
-
         const keys = { w: false, a: false, s: false, d: false, space: false };
+
+        let joystickVector = { x: 0, y: 0 }; // x is left/right, y is up/down (forward/back)
 
         let cameraAngle = 0;
 
@@ -319,6 +411,12 @@
 
         let previousMouseX = 0;
 
+        let touchCameraId = null;
+
+        let previousTouchX = 0;
+
+
+        // --- Keyboard Listeners ---
 
         document.addEventListener('keydown', (e) => {
 
@@ -358,6 +456,8 @@
         });
 
 
+        // --- Mouse Camera Control ---
+
         document.addEventListener('mousedown', (e) => { isDragging = true; previousMouseX = e.clientX; });
 
         document.addEventListener('mouseup', () => { isDragging = false; });
@@ -377,6 +477,183 @@
         });
 
 
+        // --- Touch Control Logic ---
+
+        const joystickZone = document.getElementById('joystick-zone');
+
+        const joystickKnob = document.getElementById('joystick-knob');
+
+        const jumpBtn = document.getElementById('jump-button');
+
+
+        // Joystick
+
+        joystickZone.addEventListener('touchstart', (e) => {
+
+            e.preventDefault();
+
+            handleJoystickMove(e.changedTouches[0]);
+
+        }, {passive: false});
+
+
+        joystickZone.addEventListener('touchmove', (e) => {
+
+            e.preventDefault();
+
+            handleJoystickMove(e.changedTouches[0]);
+
+        }, {passive: false});
+
+
+        joystickZone.addEventListener('touchend', (e) => {
+
+            e.preventDefault();
+
+            joystickVector = { x: 0, y: 0 };
+
+            joystickKnob.style.transform = `translate(-50%, -50%)`; // Reset knob
+
+        }, {passive: false});
+
+
+        function handleJoystickMove(touch) {
+
+            const rect = joystickZone.getBoundingClientRect();
+
+            const centerX = rect.left + rect.width / 2;
+
+            const centerY = rect.top + rect.height / 2;
+
+           
+
+            // Calculate delta
+
+            let dx = touch.clientX - centerX;
+
+            let dy = touch.clientY - centerY;
+
+           
+
+            // Limit knob distance
+
+            const distance = Math.sqrt(dx*dx + dy*dy);
+
+            const maxRadius = rect.width / 2 - 25; // Zone radius minus knob radius
+
+           
+
+            if (distance > maxRadius) {
+
+                const ratio = maxRadius / distance;
+
+                dx *= ratio;
+
+                dy *= ratio;
+
+            }
+
+           
+
+            // Move knob
+
+            joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+           
+
+            // Normalize vector (-1 to 1)
+
+            joystickVector.x = dx / maxRadius;
+
+            joystickVector.y = dy / maxRadius;
+
+        }
+
+
+        // Jump Button
+
+        jumpBtn.addEventListener('touchstart', (e) => {
+
+            e.preventDefault();
+
+            keys.space = true;
+
+        }, {passive: false});
+
+
+        jumpBtn.addEventListener('touchend', (e) => {
+
+            e.preventDefault();
+
+            keys.space = false;
+
+        }, {passive: false});
+
+
+        // Touch Camera (Drag anywhere else)
+
+        document.addEventListener('touchstart', (e) => {
+
+            // Find a touch that isn't on the controls
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+
+                const t = e.changedTouches[i];
+
+                if (t.target !== joystickZone && t.target !== joystickKnob && t.target !== jumpBtn) {
+
+                    touchCameraId = t.identifier;
+
+                    previousTouchX = t.clientX;
+
+                    break;
+
+                }
+
+            }
+
+        }, {passive: false});
+
+
+        document.addEventListener('touchmove', (e) => {
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+
+                const t = e.changedTouches[i];
+
+                if (t.identifier === touchCameraId) {
+
+                    const delta = t.clientX - previousTouchX;
+
+                    cameraAngle -= delta * 0.008; // Sensitivity
+
+                    previousTouchX = t.clientX;
+
+                    break;
+
+                }
+
+            }
+
+        }, {passive: false});
+
+
+        document.addEventListener('touchend', (e) => {
+
+            for (let i = 0; i < e.changedTouches.length; i++) {
+
+                if (e.changedTouches[i].identifier === touchCameraId) {
+
+                    touchCameraId = null;
+
+                }
+
+            }
+
+        }, {passive: false});
+
+
+
         // --- Level Building Functions ---
 
         const platforms = [];
@@ -394,41 +671,21 @@
 
             const geo = new THREE.BoxGeometry(w, h, d);
 
-            const mat = new THREE.MeshStandardMaterial({
-
-                color: color,
-
-                roughness: 0.8,
-
-                transparent: true,
-
-                opacity: 0.9
-
-            });
+            const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, transparent: true, opacity: 0.9 });
 
             const mesh = new THREE.Mesh(geo, mat);
 
             mesh.position.set(x, y, z);
 
-            mesh.receiveShadow = true;
-
-            mesh.castShadow = true;
+            mesh.receiveShadow = true; mesh.castShadow = true;
 
             scene.add(mesh);
-
-           
 
             const collider = { mesh: mesh, width: w, height: h, depth: d, type: type };
 
             platforms.push(collider);
 
-           
-
-            if(type === 'moving') {
-
-                movingPlatforms.push({ ...collider, originalY: y, offset: Math.random() * Math.PI * 2 });
-
-            }
+            if(type === 'moving') movingPlatforms.push({ ...collider, originalY: y, offset: Math.random() * Math.PI * 2 });
 
             return mesh;
 
@@ -439,23 +696,13 @@
 
             const geo = new THREE.BoxGeometry(w, h, d);
 
-            const mat = new THREE.MeshStandardMaterial({
-
-                color: 0xff3300,
-
-                emissive: 0xff0000,
-
-                emissiveIntensity: 0.5
-
-            });
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff3300, emissive: 0xff0000, emissiveIntensity: 0.5 });
 
             const mesh = new THREE.Mesh(geo, mat);
 
             mesh.position.set(x, y, z);
 
             scene.add(mesh);
-
-           
 
             const hazard = { mesh: mesh, width: w, height: h, depth: d, active: true };
 
@@ -509,51 +756,42 @@
 
         for (let i = 1; i <= 5; i++) {
 
-            // Increased depth from 4 to 6 to make landing easier
+            createPlatform(0, i * 2, i * -6.5, 4, 0.5, 6, 0x228b22);
 
-            createPlatform(0, i * 2, i * -8, 4, 0.5, 6, 0x228b22);
-
-            if (i % 2 !== 0) createCoin(0, (i * 2) + 1.5, i * -8);
+            if (i % 2 !== 0) createCoin(0, (i * 2) + 1.5, i * -6.5);
 
         }
 
 
-        createPlatform(0, 10, -48, 6, 0.5, 6, 0x32cd32, 'moving');
+        createPlatform(0, 10, -40, 6, 0.5, 6, 0x32cd32, 'moving');
 
+        createPlatform(0, 10, -50, 8, 1, 8, 0x888888);
 
-        createPlatform(0, 10, -60, 8, 1, 8, 0x888888);
+        createCheckpoint(0, 10.5, -50, 2);
 
-        createCheckpoint(0, 10.5, -60, 2);
+        createPlatform(-6, 12, -58, 4, 1, 4, 0x666666);
 
+        createPlatform(6, 14, -66, 4, 1, 4, 0x666666);
 
-        createPlatform(-6, 12, -70, 4, 1, 4, 0x666666);
+        createPlatform(0, 13, -62, 15, 0.5, 2, 0x555555);
 
-        createPlatform(6, 14, -80, 4, 1, 4, 0x666666);
+        createHazard(0, 13.5, -62, 2, 0.5, 2);
 
-       
+        createPlatform(0, 15, -72, 4, 1, 4, 0x666666);
 
-        createPlatform(0, 13, -75, 15, 0.5, 2, 0x555555);
+        createPlatform(0, 15, -80, 4, 1, 4, 0x666666);
 
-        createHazard(0, 13.5, -75, 2, 0.5, 2);
+        createPlatform(0, 15, -88, 4, 1, 4, 0x666666);
 
+        createHazard(0, 15, -76, 2, 4, 2, 'timed');
 
-        createPlatform(0, 15, -90, 4, 1, 4, 0x666666);
+        createHazard(0, 15, -84, 2, 4, 2, 'timed');
 
-        createPlatform(0, 15, -100, 4, 1, 4, 0x666666);
+        createCoin(0, 17, -80);
 
-        createPlatform(0, 15, -110, 4, 1, 4, 0x666666);
+        createPlatform(0, 15, -100, 10, 1, 10, 0x333333);
 
-
-        createHazard(0, 15, -95, 2, 4, 2, 'timed');
-
-        createHazard(0, 15, -105, 2, 4, 2, 'timed');
-
-        createCoin(0, 17, -100);
-
-
-        createPlatform(0, 15, -125, 10, 1, 10, 0x333333);
-
-        createCheckpoint(0, 15.5, -125, 3);
+        createCheckpoint(0, 15.5, -100, 3);
 
 
         let angle = 0;
@@ -562,50 +800,32 @@
 
         for(let i = 0; i < 10; i++) {
 
-            angle += 0.8;
-
-            height += 2.5;
+            angle += 0.6; height += 2.0;
 
             const x = Math.sin(angle) * 10;
 
-            const z = -125 + Math.cos(angle) * 10;
-
-           
+            const z = -100 + Math.cos(angle) * 10;
 
             createPlatform(x, height, z, 4, 0.5, 4, 0x552200);
 
-           
+            if (i % 2 === 0) createHazard(x, height + 0.3, z, 1, 0.5, 1, 'timed');
 
-            if (i % 2 === 0) {
-
-                 createHazard(x, height + 0.3, z, 1, 0.5, 1, 'timed');
-
-            } else {
-
-                createCoin(x, height + 1.5, z);
-
-            }
+            else createCoin(x, height + 1.5, z);
 
         }
 
-
-        createPlatform(0, height + 5, -125, 15, 1, 15, 0xffd700);
+        createPlatform(0, height + 5, -100, 15, 1, 15, 0xffd700);
 
 
         // --- Game Logic ---
 
-
         function updatePhysics(dt) {
 
-            // 1. Check if we are grounded on a known platform (Sticky Logic)
+            // Sticky Logic
 
             if (gameState.currentPlatform) {
 
                 const p = gameState.currentPlatform;
-
-               
-
-                // Bounds check with slight forgiveness
 
                 const pMinX = p.mesh.position.x - p.width/2 - 0.6;
 
@@ -616,17 +836,11 @@
                 const pMaxZ = p.mesh.position.z + p.depth/2 + 0.6;
 
 
-                // Check if player is still roughly over the platform
-
                 if (playerPosition.x >= pMinX && playerPosition.x <= pMaxX &&
 
                     playerPosition.z >= pMinZ && playerPosition.z <= pMaxZ) {
 
-                   
-
                     if (keys.space) {
-
-                        // JUMP: Break sticky bond
 
                         playerVelocity.y = JUMP_FORCE;
 
@@ -636,21 +850,15 @@
 
                     } else {
 
-                        // STICK: Lock Y to platform top
-
                         isGrounded = true;
 
                         playerVelocity.y = 0;
-
-                        // Smoothly follow platform Y (handles moving platforms)
 
                         playerPosition.y = p.mesh.position.y + p.height/2 + 0.5;
 
                     }
 
                 } else {
-
-                    // WALK OFF: Apply gravity again
 
                     isGrounded = false;
 
@@ -659,8 +867,6 @@
                 }
 
             } else {
-
-                // Air control
 
                 if (keys.space && isGrounded) {
 
@@ -673,18 +879,16 @@
             }
 
 
-            // 2. Apply Gravity (Only if not grounded)
-
-            if (!isGrounded) {
-
-                playerVelocity.y -= GRAVITY * dt;
-
-            }
+            if (!isGrounded) playerVelocity.y -= GRAVITY * dt;
 
 
-            // 3. Movement Inputs (Horizontal)
+            // Movement Inputs (Mix Keyboard + Joystick)
 
             let moveDir = new THREE.Vector3(0, 0, 0);
+
+           
+
+            // Keyboard
 
             if (keys.w) moveDir.z -= 1;
 
@@ -695,9 +899,22 @@
             if (keys.d) moveDir.x += 1;
 
 
+            // Joystick (Add to keyboard input)
+
+            moveDir.x += joystickVector.x;
+
+            moveDir.z += joystickVector.y; // Y from 2D input maps to Z in 3D world
+
+
             if (moveDir.length() > 0) {
 
-                moveDir.normalize();
+                // Clamp length to 1 to prevent double speed if using both inputs
+
+                if(moveDir.length() > 1) moveDir.normalize();
+
+               
+
+                // Rotate vector based on camera angle
 
                 moveDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngle);
 
@@ -723,8 +940,6 @@
             if (playerVelocity.y < -20) playerVelocity.y = -20;
 
 
-            // Rotation
-
             if (Math.abs(playerVelocity.x) > 0.1 || Math.abs(playerVelocity.z) > 0.1) {
 
                 const angle = Math.atan2(playerVelocity.x, playerVelocity.z);
@@ -734,30 +949,18 @@
             }
 
 
-            // 4. Propose new position (X/Z always, Y only if airborne)
-
             let nextPos = playerPosition.clone();
 
             nextPos.x += playerVelocity.x * dt;
 
             nextPos.z += playerVelocity.z * dt;
 
-           
-
-            if (!isGrounded) {
-
-                nextPos.y += playerVelocity.y * dt;
-
-            } else {
-
-                // If grounded, Y is already set by the Sticky Logic above
-
-            }
+            if (!isGrounded) nextPos.y += playerVelocity.y * dt;
 
 
-            // 5. Collision Detection (Landing on new platforms)
+            // Collision
 
-            if (!isGrounded && playerVelocity.y <= 0) { // Only check if falling
+            if (!isGrounded && playerVelocity.y <= 0) {
 
                 for (let p of platforms) {
 
@@ -773,9 +976,6 @@
 
                     let pMaxZ = p.mesh.position.z + p.depth/2 + 0.5;
 
-
-                    // Check if entering from top
-
                     if (
 
                         nextPos.x > pMinX && nextPos.x < pMaxX &&
@@ -786,17 +986,15 @@
 
                     ) {
 
-                        // LANDED!
-
                         nextPos.y = pMaxY + 0.5;
 
                         playerVelocity.y = 0;
 
                         isGrounded = true;
 
-                        gameState.currentPlatform = p; // Lock to this platform
+                        gameState.currentPlatform = p;
 
-                        break; // Stop checking
+                        break;
 
                     }
 
@@ -804,8 +1002,6 @@
 
             }
 
-
-            // Hazards
 
             hazards.forEach(h => {
 
@@ -815,16 +1011,10 @@
 
                     Math.abs(h.mesh.position.y - nextPos.y) < (h.height/2 + 0.4) &&
 
-                    Math.abs(h.mesh.position.z - nextPos.z) < (h.depth/2 + 0.4)) {
-
-                    die();
-
-                }
+                    Math.abs(h.mesh.position.z - nextPos.z) < (h.depth/2 + 0.4)) die();
 
             });
 
-
-            // Coins
 
             for (let i = coins.length - 1; i >= 0; i--) {
 
@@ -845,8 +1035,6 @@
             }
 
 
-            // Checkpoints
-
             gameState.checkpoints.forEach(cp => {
 
                 if (cp.pos.distanceTo(nextPos) < 3) {
@@ -866,13 +1054,7 @@
             });
 
 
-            if (nextPos.y < -20) {
-
-                die();
-
-                return;
-
-            }
+            if (nextPos.y < -20) { die(); return; }
 
 
             playerPosition.copy(nextPos);
@@ -888,23 +1070,15 @@
 
             deathScreen.style.display = 'flex';
 
-           
-
             const cp = gameState.checkpoints[gameState.currentCheckpoint].pos;
 
             playerPosition.set(cp.x, cp.y + 2, cp.z);
 
             playerVelocity.set(0, 0, 0);
 
-            gameState.currentPlatform = null; // Reset platform lock
+            gameState.currentPlatform = null;
 
-           
-
-            setTimeout(() => {
-
-                deathScreen.style.display = 'none';
-
-            }, 1000);
+            setTimeout(() => { deathScreen.style.display = 'none'; }, 1000);
 
         }
 
@@ -913,13 +1087,7 @@
 
             coins.forEach(c => { c.rotation.y += 0.05; });
 
-
-            movingPlatforms.forEach(p => {
-
-                p.mesh.position.y = p.originalY + Math.sin(time * 2 + p.offset) * 2;
-
-            });
-
+            movingPlatforms.forEach(p => { p.mesh.position.y = p.originalY + Math.sin(time * 2 + p.offset) * 2; });
 
             const cycle = Math.floor(time / 2);
 
@@ -950,7 +1118,6 @@
 
             const camY = playerPosition.y + 5;
 
-
             camera.position.set(camX, camY, camZ);
 
             camera.lookAt(playerPosition);
@@ -962,12 +1129,9 @@
 
         let lastTime = performance.now();
 
-
         function animate() {
 
             requestAnimationFrame(animate);
-
-           
 
             const now = performance.now();
 
